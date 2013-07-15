@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+from functools import wraps
+
 class AuthManager(object):
     __abstract__ = True
 
@@ -7,8 +9,14 @@ class AuthManager(object):
         self.app = app
         app.before_request(self.prepare)
 
-    def __call__(self, f):
-
+    def __call__(self, *verify_args, **verify_kwargs):
+        def decorator(f):
+            @wraps(f)
+            def decorated_function(*args, **kwargs):
+                self.prepare(*verify_args, **verify_kwargs)
+                f(*args, **kwargs)
+            return decorated_function;
+        return decorator
 
     def prepare(self):
         """do something like: check if user is login, configure session, etc"""

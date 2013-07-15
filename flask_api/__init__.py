@@ -9,8 +9,8 @@ import decimal
 
 
 class APIManager(object):
-    def __init__(self):
-        self.app = None
+    def __init__(self, app_or_blueprint=None):
+        self.app = app_or_blueprint
 
         # decorators that will be applied to API handler
         # front weill be applied earlier
