@@ -1,20 +1,29 @@
 # -*- coding: utf-8 -*-
 
 from functools import wraps
+from flask import session
+
+
+class UnauthorizedError(Exception):
+    api_status = 401
+
 
 class AuthManager(object):
     __abstract__ = True
 
     def __init__(self, app):
         self.app = app
-        app.before_request(self.prepare)
+
+        @app.before_request
+        def auth_prepare():
+            self.prepare()
 
     def __call__(self, *verify_args, **verify_kwargs):
         def decorator(f):
             @wraps(f)
             def decorated_function(*args, **kwargs):
-                self.prepare(*verify_args, **verify_kwargs)
-                f(*args, **kwargs)
+                self.verify(*verify_args, **verify_kwargs)
+                return f(*args, **kwargs)
             return decorated_function;
         return decorator
 
@@ -34,43 +43,35 @@ class AuthManager(object):
         pass
 
 
-class UnauthorizedError(Exception):
-    api_status = 401
-
-
-
-ANONYMOUS_SIGN = 1
-ADMIN_SIGN = 2
-EMPLOYEE_SIGN = 4
-CUSTOMER_SIGN = 8
-
-
 class SessionAuthManager(AuthManager):
-    sign = None
-    customer_id = None
+    def __init__(self, app):
+        self.sign = None
+        self.extra_data = None
+
+        super(SessionAuthManager, self).__init__(app)
 
     def prepare(self):
         session.permanent = True
 
         if 'auth' in session and 'sign' in session['auth']:
             self.sign = session['auth']['sign']
-            if self.sign == CUSTOMER_SIGN:
-                self.customer_id = session['auth']['customer_id']
+            self.extra_data = session['auth']['extra_data']
+        else:
+            self.sign = self.extra_data = None
 
-    def login(self, sign, customer_id=None):
+    def login(self, sign, extra_data=None):
         session['auth'] = {}
         session.modified = True
 
         self.sign = session['auth']['sign'] = sign
-        self.customer_id = session['auth']['customer_id'] = 
-            customer_id if self.sign == CUSTOMER_SIGN else None
+        self.extra_data = session['auth']['extra_data'] = extra_data
 
     def logout(self):
         if 'auth' in session:
             del session['auth']
             session.modified = True
-            self.sign = self.customer_id = None
+            self.sign = self.extra_data = None
 
     def verify(self, expect_sign):
-        if sign is None or (expect_sign & self.sign) != self.sign:
+        if self.sign is None or (expect_sign & self.sign) != self.sign:
             raise UnauthorizedError()

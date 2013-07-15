@@ -4,13 +4,13 @@ __version__ = 0.1
 __all__ = ['APIManager', 'ExceptionHandler', 'ExceptionWrap', 'ResponseFormatter', 'APIJSONEncoder']
 
 from functools import wraps
-from flask import make_response, json
+from flask import make_response, json, request
 import decimal
 
 
 class APIManager(object):
     def __init__(self, app_or_blueprint=None):
-        self.app = app_or_blueprint
+        self.app = None
 
         # decorators that will be applied to API handler
         # front weill be applied earlier
@@ -30,6 +30,9 @@ class APIManager(object):
         self.exception_handler = None
         self.response_formatter = None
 
+        if app_or_blueprint:
+            self.init_app(app_or_blueprint)
+
 
     def init_app(self, app_or_blueprint):
         self.app = app_or_blueprint
@@ -45,7 +48,7 @@ class APIManager(object):
     def __call__(self, *args, **kwargs):
         return self.register(*args, **kwargs)
 
-    def register(self, rule):
+    def register(self, rule, **kwargs):     # kwargs 是临时的，测试用的
         """ register new API handler """
         def decorator(f):
             def decorated_function(*args, **kwargs):
@@ -55,7 +58,7 @@ class APIManager(object):
                 decorated_function = decorator(decorated_function)
             decorated_function = wraps(f)(decorated_function)
 
-            self.app.add_url_rule(rule, None, decorated_function)
+            self.app.add_url_rule(rule, None, decorated_function, **kwargs)
 
             return f
         return decorator
@@ -82,7 +85,7 @@ class ExceptionHandler(object):
             try:
                 return f(*args, **kwargs)
             except Exception as e:
-                if e.api_status:
+                if hasattr(e, 'api_status'):
                     return make_response(e.message, e.api_status)
                 else:
                     for registered_exception in self.registered_exceptions:
@@ -112,12 +115,22 @@ class ResponseFormatter(object):
     if there's a query param called "callback"(eg.  http://url?callback=xxx), format to JSONP
     else JSON
     """
-    def __init__(self, json_encoder_cls=None):
-        self.json_encoder_cls = json_encoder_cls or APIJSONEncoder
+
+    def __init__(self):
+        # user can add customer formatter to handle type that default json_encoder can't understand
+        # 
+        # a formatter can assign to a special type or no(example for a group standalone classes has same feature)
+        # 
+        # for formatters has't assign to a type, no matter what it returns, ResponseFormatter will think it is the right result
+        # generate by the formatter, and return it, even if it's None
+        #
+        # so, if the formatter want to tell ResponseFormatter, it can't handle this value, it must raise a TypeError, 
+        # instand of return None
+        self.formatters = []
 
     def __call__(self, f):
         def decorated_function(*args, **kwargs):
-            json_str = json.dumps(f(*args, **kwargs), cls=self.json_encoder_cls)
+            json_str = json.dumps(f(*args, **kwargs), default=self._default)
             callback = request.args.get('callback', False)
             if callback:
                 return str(callback) + '(' + json_str + ')', 200, {'Content-Type': 'application/javascript'}
@@ -125,19 +138,21 @@ class ResponseFormatter(object):
                 return json_str, 200, {'Content-Type': 'application/json'}
         return decorated_function
 
+    def _default(self, o):
+        for formatter in self.formatters:
+            if isinstance(formatter, tuple):
+                if isinstance(o, formatter[0]):
+                    return formatter[1](o)
+            else:
+                try:
+                    return formatter(o)
+                except TypeError:
+                    pass
+        raise TypeError(repr(o) + " is not JSON serializable")
 
-class APIJSONEncoder(json.JSONEncoder):
-    def default(self, o):
-        # support Decimal （already known "sqlalchemy db join query" sometimes include values of this type）
-        if isinstance(o, decimal.Decimal):
-            return float(o)
 
-        # support generator
-        try:
-            iterable = iter(o)
-        except TypeError:
-            pass
+    def register_formatter(self, formatter, target_class=None):
+        if target_class:
+            self.formatters.append((target_class, formatter))
         else:
-            return list(iterable)
-
-        return json.JSONEncoder.default(self, o)
+            self.formatters.append(formatter)
