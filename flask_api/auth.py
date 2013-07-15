@@ -72,6 +72,8 @@ class SessionAuthManager(AuthManager):
             session.modified = True
             self.sign = self.extra_data = None
 
-    def verify(self, expect_sign):
-        if self.sign is None or (expect_sign & self.sign) != self.sign:
+    def verify(self, expect_sign, allow_anonymous=False):
+        """if you want a api can be visited by everyone, set expect_sign to None, and allow_anonymous to True
+        or just don't call this method(don't applied auth decorator)"""
+        if (self.sign is None and allow_anonymous is False) or (expect_sign is not None and (expect_sign & self.sign) != self.sign):
             raise UnauthorizedError()

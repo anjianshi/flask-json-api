@@ -150,7 +150,6 @@ class ResponseFormatter(object):
                     pass
         raise TypeError(repr(o) + " is not JSON serializable")
 
-
     def register_formatter(self, formatter, target_class=None):
         if target_class:
             self.formatters.append((target_class, formatter))
