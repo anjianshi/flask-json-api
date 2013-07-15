@@ -13,7 +13,7 @@ import flask_api
 setup(
     name='Flask-api',
     version=flask_api.__version__,
-    url='https://github.com/anjianshi/flask-api.git',
+    url='https://github.com/anjianshi/flask-api',
     license='MIT',
     author='anjianshi',
     author_email='anjianshi@gmail.com',
