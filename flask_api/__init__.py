@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 
 __version__ = 0.1
-__all__ = ['APIManager', 'ExceptionHandler', 'RegisteredException', 'ResponseFormatter', 'APIJSONEncoder']
+__all__ = ['APIManager', 'ExceptionHandler', 'ExceptionWrap', 'ResponseFormatter', 'APIJSONEncoder']
 
 from functools import wraps
 from flask import make_response, json
+import decimal
 
 
 class APIManager(object):
@@ -73,11 +74,8 @@ class ExceptionHandler(object):
     after all, only exceptions that is the instance of Exception(or it's sub-class), will be treat
     """
 
-    registered_exceptions = []
-
-    @classmethod
-    def register_exception(cls, *args, **kwargs):
-        cls.registered_exceptions.append(RegisteredException(*args, **kwargs))
+    def __init__(self):
+        self.registered_exceptions = []
 
     def __call__(self, f):
         def decorated_function(*args, **kwargs):
@@ -96,8 +94,11 @@ class ExceptionHandler(object):
                     raise e
         return decorated_function
 
+    def register_exception(self, *args, **kwargs):
+        self.registered_exceptions.append(ExceptionWrap(*args, **kwargs))
 
-class RegisteredException(object):
+
+class ExceptionWrap(object):
     def __init__(self, exception_class, api_status=500, message=''):
         self.exception_class = exception_class
         self.api_status = api_status
@@ -127,8 +128,8 @@ class ResponseFormatter(object):
 
 class APIJSONEncoder(json.JSONEncoder):
     def default(self, o):
-        # support Decimal （already known "db join query" sometimes include values of this type）
-        if isinstance(o, Decimal):
+        # support Decimal （already known "sqlalchemy db join query" sometimes include values of this type）
+        if isinstance(o, decimal.Decimal):
             return float(o)
 
         # support generator

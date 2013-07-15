@@ -27,7 +27,8 @@ class AuthManager(object):
 
 
 class UnauthorizedError(Exception):
-    pass
+    api_status = 401
+
 
 
 ANONYMOUS_SIGN = 1
