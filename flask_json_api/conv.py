@@ -24,17 +24,14 @@ class RouteConverter(object):
     def __init__(self, f):
         self.converter = f
 
-    def __call__(self, var_name, *conv_args, **conv_kwargs):
+    def __call__(self, from_, to, *conv_args, **conv_kwargs):
         """
-        var_name can be a sting, assign which variable in url should be converted;
-        or a tuple, assign both variable name and the argument name when pass to API handler
+        if 'to' set to None, will set it's value same as 'from_'
 
         conv_args and conv_kwargs will pass to self.converter after var_value
         """
-        if isinstance(var_name, tuple):
-            from_, to = var_name
-        else:
-            from_ = to = var_name
+        if to is None:
+            to = from_
 
         def decorator(f):
             @wraps(f)
