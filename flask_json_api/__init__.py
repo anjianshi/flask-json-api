@@ -142,7 +142,7 @@ class ResponseFormatter(object):
                     return formatter(o)
                 except TypeError:
                     pass
-        raise TypeError(repr(o) + " is not JSON serializable")
+        return json.JSONEncoder.default(self, o)
 
     def register(self, formatter, target_class=None):
         if target_class:
