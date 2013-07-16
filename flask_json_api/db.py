@@ -20,32 +20,32 @@ from conv import RouteConverter
 
 
 def get_instance(app):
-	return flask.ext.sqlalchemy.SQLAlchemy(app)
+    return flask.ext.sqlalchemy.SQLAlchemy(app)
 
 
 def _model_as_dict(self, exclude=None, only=None):
-	if exclude is None and only is None and self.__api_args__ is not None and 'exclude_columns' in self.__api_args__:
-	    exclude = self.__api_args__['exclude_columns']
+    if exclude is None and only is None and self.__api_args__ is not None and 'exclude_columns' in self.__api_args__:
+        exclude = self.__api_args__['exclude_columns']
 
-	if exclude:
-	    # 若 exclude 和 only 同时被赋值，只考虑 exclude
-	    only = None
-	    if not isinstance(exclude, list):
-	        exclude = [exclude]
-	elif only and not isinstance(only, list):
-	    only = [only]
+    if exclude:
+        # 若 exclude 和 only 同时被赋值，只考虑 exclude
+        only = None
+        if not isinstance(exclude, list):
+            exclude = [exclude]
+    elif only and not isinstance(only, list):
+        only = [only]
 
-	d = {}
-	for column in self.__table__.columns:
-	    colname = column.name
-	    if (exclude and colname in exclude) or (only and colname not in only):
-	        continue
-	    d[colname] = getattr(self, colname)
-	return d
+    d = {}
+    for column in self.__table__.columns:
+        colname = column.name
+        if (exclude and colname in exclude) or (only and colname not in only):
+            continue
+        d[colname] = getattr(self, colname)
+    return d
 flask.ext.sqlalchemy.Model.as_dict = _model_as_dict
 
 # store custome args:
-#'	exclude_columns': []      the columns should exclude when call as_dict()
+#'    exclude_columns': []      the columns should exclude when call as_dict()
 flask.ext.sqlalchemy.Model.__api_args__ = None
 
 
