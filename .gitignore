@@ -1,7 +1,7 @@
 *.pyc
 *.sublime-project
 *.sublime-workspace
-Flask_api.egg-info/
+*.egg-info/
 dist/
 build/
 .idea/

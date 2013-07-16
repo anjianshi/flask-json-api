@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 __version__ = 0.1
-__all__ = ['APIManager', 'ExceptionHandler', 'ExceptionWrap', 'ResponseFormatter', 'APIJSONEncoder']
+__all__ = ['APIManager', 'ExceptionHandler', 'ExceptionWrap', 'InvalidRequest', 'ResponseFormatter', 'APIJSONEncoder']
 
 from functools import wraps
 from flask import make_response, json, request
@@ -37,10 +37,7 @@ class APIManager(object):
     def init_app(self, app_or_blueprint):
         self.app = app_or_blueprint
 
-    def __call__(self, *args, **kwargs):
-        return self.register(*args, **kwargs)
-
-    def register(self, rule, **rule_kwargs):
+    def __call__(self, rule, **rule_kwargs):
         """ register new API handler """
         def decorator(f):
             def decorated_function(*args, **kwargs):
@@ -98,6 +95,11 @@ class ExceptionWrapper(object):
         self.exception_class = exception_class
         self.api_status = api_status
         self.message = message
+
+
+class InvalidRequest(Exception):
+    """use in API handler and some utils"""
+    api_status = 400
 
 
 # ================================

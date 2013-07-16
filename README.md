@@ -1,6 +1,6 @@
 ```text
 
-kgzx-api
+kgzx-json-api
 
 api 装饰器
     将错误处理、权限验证、返回值格式化组件与 api 函数拼装在一起，并注册进 app.route
@@ -22,23 +22,6 @@ api 装饰器
         权限检查（看用户当前的身份信息是否符合 api 函数的要求）
     身份类型时由用户定义的，每种身份类型需对应一个数字。
     指定 api 函数的权限需求时，把允许的多个身份类型的值进行按位运算，传给 api 装饰器
-
-    例子：
-    Auth.ADMIN = 1
-    Auth.CUSTOMER = 2
-    Auth.ANONYMOUS = 4
-
-    auth = SessionAuthManager(app)
-
-    @api('/index')
-    @auth(Auth.ANONYMOUS)
-    def index():
-        pass
-
-    @api('/list', auth=Auth.ADMIN)
-    @auth(Auth.CUSTOMER)
-    def li():
-        pass
 
 api 函数 参数转换(独立于 api 系统，可自行扩展)
     参数转换系统根据用户给出的规则，转换、校验某个 url 参数的值，例如把分类 id 转换为分类对象

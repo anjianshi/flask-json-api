@@ -8,17 +8,17 @@ except ImportError:
 
 import os
 import sys
-import flask_api
+import flask_json_api
 
 setup(
     name='Flask-json-api',
-    version=flask_api.__version__,
+    version=flask_json_api.__version__,
     url='https://github.com/anjianshi/flask-json-api',
     license='MIT',
     author='anjianshi',
     author_email='anjianshi@gmail.com',
     description='Flask REST API extension',
-    packages=['flask_api'],
+    packages=['flask_json_api'],
     zip_safe=False,
     platforms='any',
     install_requires=['Flask>=0.8'],
