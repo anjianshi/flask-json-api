@@ -61,7 +61,7 @@ Query.as_dict = _query_as_dict
 def _keyed_tuple_as_dict(self, **kwargs):
     result = {}
     for key, value in self._asdict().iteritems():
-        if isinstance(value, MyModel):
+        if isinstance(value, flask.ext.sqlalchemy.Model):
             result.update(value.as_dict(**kwargs))
         else:
             result[key] = value
