@@ -2,7 +2,7 @@
 """
 use utils in this module, need flask-sqlalchemy
 
-add a as_dict() method, to resolve SQLAlchemy doesn't support translate model to dict, 
+add as_dict() method, to resolve SQLAlchemy doesn't support translate model to dict, 
 and then can't serialization it to json's problem
 
 add a __api_args__ property help implement new feature
@@ -11,52 +11,42 @@ and other utils
 
 """
 
-__all__ = ['db', 'APIModel', 'init_app', 'model_conv']
+__all__ = ['get_instance', 'model_conv']
 
-from flask.ext.sqlalchemy import SQLAlchemy
+import flask.ext.sqlalchemy
 from sqlalchemy.orm import Query
 from sqlalchemy.util import KeyedTuple
 from conv import RouteConverter
 
 
-db = None
-APIModel = None
+def get_instance(app):
+	return flask.ext.sqlalchemy.SQLAlchemy(app)
 
 
-def init_app(app):
-	global db
-	global APIModel
+def _model_as_dict(self, exclude=None, only=None):
+	if exclude is None and only is None and self.__api_args__ is not None and 'exclude_columns' in self.__api_args__:
+	    exclude = self.__api_args__['exclude_columns']
 
-	db = SQLAlchemy(app)
+	if exclude:
+	    # 若 exclude 和 only 同时被赋值，只考虑 exclude
+	    only = None
+	    if not isinstance(exclude, list):
+	        exclude = [exclude]
+	elif only and not isinstance(only, list):
+	    only = [only]
 
+	d = {}
+	for column in self.__table__.columns:
+	    colname = column.name
+	    if (exclude and colname in exclude) or (only and colname not in only):
+	        continue
+	    d[colname] = getattr(self, colname)
+	return d
+flask.ext.sqlalchemy.Model.as_dict = _model_as_dict
 
-	class Model(db.Model):
-		__abstract__ = True
-
-		# store custome args:
-		#'	exclude_columns': []      the columns should exclude when call as_dict()
-    	__api_args__ = None
-
-		def as_dict(self, exclude=None, only=None):
-	        if exclude is None and only is None and self.__api_args__ is not None and 'exclude_columns' in self.__api_args__:
-	            exclude = self.__api_args__['exclude_columns']
-
-	        if exclude:
-	            # 若 exclude 和 only 同时被赋值，只考虑 exclude
-	            only = None
-	            if not isinstance(exclude, list):
-	                exclude = [exclude]
-	        elif only and not isinstance(only, list):
-	            only = [only]
-
-	        d = {}
-	        for column in self.__table__.columns:
-	            colname = column.name
-	            if (exclude and colname in exclude) or (only and colname not in only):
-	                continue
-	            d[colname] = getattr(self, colname)
-	        return d
-	APIModel = Model
+# store custome args:
+#'	exclude_columns': []      the columns should exclude when call as_dict()
+flask.ext.sqlalchemy.Model.__api_args__ = None
 
 
 def _query_as_dict(self, **kwargs):
