@@ -5,14 +5,19 @@ __all__ = ['APIManager', 'ExceptionHandler', 'ExceptionWrap', 'ResponseFormatter
 
 from functools import wraps
 from flask import make_response, json, request
-import decimal
 
 
 class APIManager(object):
     def __init__(self, app_or_blueprint=None):
-        self.app = None
+        if app_or_blueprint:
+            self.init_app(app_or_blueprint)
+        else:
+            self.app = None
 
-        # decorators that will be applied to API handler
+        self.response_formatter = ResponseFormatter()
+        self.exception_handler = ExceptionHandler()
+        
+        # decorators that will be applied to API handler, you can change it manually
         # front weill be applied earlier
         # 
         # for performance, decorators will be applied when API handlers register,
@@ -24,31 +29,18 @@ class APIManager(object):
         # and if you want a decorator be effictive all the time(regardless call like an API handler or normal function),
         # you should add it manually, dont't add it in this decorators list
         # example: auth decorator is the one should add manually
-        self.decorators = None
-
-        # default decorators
-        self.exception_handler = None
-        self.response_formatter = None
-
-        if app_or_blueprint:
-            self.init_app(app_or_blueprint)
-
-
-    def init_app(self, app_or_blueprint):
-        self.app = app_or_blueprint
-
-        self.exception_handler = ExceptionHandler()
-        self.response_formatter = ResponseFormatter()
-
         self.decorators = [
             self.response_formatter,
             self.exception_handler
         ]
 
+    def init_app(self, app_or_blueprint):
+        self.app = app_or_blueprint
+
     def __call__(self, *args, **kwargs):
         return self.register(*args, **kwargs)
 
-    def register(self, rule, **kwargs):     # kwargs 是临时的，测试用的
+    def register(self, rule, **rule_kwargs):
         """ register new API handler """
         def decorator(f):
             def decorated_function(*args, **kwargs):
@@ -58,7 +50,7 @@ class APIManager(object):
                 decorated_function = decorator(decorated_function)
             decorated_function = wraps(f)(decorated_function)
 
-            self.app.add_url_rule(rule, None, decorated_function, **kwargs)
+            self.app.add_url_rule(rule, None, decorated_function, **rule_kwargs)
 
             return f
         return decorator
@@ -67,14 +59,14 @@ class APIManager(object):
 # ==============================
 
 class ExceptionHandler(object):
-    """the exception that has property "api_status", will be treat
+    """only exceptions has property "api_status", will be treat
     "api_status" means http status, it's value like 404, 500, etc
 
     if an exception need to be treat, but is not raised by API handler itself(eg. raised by 3rd library ), 
     and you can't change it to have the "api_status" property, you can call "register_exception" method, 
     register the exception into ExceptionHandler, then it will known how to handle it
 
-    after all, only exceptions that is the instance of Exception(or it's sub-class), will be treat
+    And notice, the exceptions must be an instance of Exception(or it's sub-class)
     """
 
     def __init__(self):
@@ -98,10 +90,10 @@ class ExceptionHandler(object):
         return decorated_function
 
     def register_exception(self, *args, **kwargs):
-        self.registered_exceptions.append(ExceptionWrap(*args, **kwargs))
+        self.registered_exceptions.append(ExceptionWrapper(*args, **kwargs))
 
 
-class ExceptionWrap(object):
+class ExceptionWrapper(object):
     def __init__(self, exception_class, api_status=500, message=''):
         self.exception_class = exception_class
         self.api_status = api_status
@@ -150,7 +142,7 @@ class ResponseFormatter(object):
                     pass
         raise TypeError(repr(o) + " is not JSON serializable")
 
-    def register_formatter(self, formatter, target_class=None):
+    def register(self, formatter, target_class=None):
         if target_class:
             self.formatters.append((target_class, formatter))
         else:
