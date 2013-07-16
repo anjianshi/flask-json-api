@@ -11,9 +11,9 @@ import sys
 import flask_api
 
 setup(
-    name='Flask-api',
+    name='Flask-json-api',
     version=flask_api.__version__,
-    url='https://github.com/anjianshi/flask-api',
+    url='https://github.com/anjianshi/flask-json-api',
     license='MIT',
     author='anjianshi',
     author_email='anjianshi@gmail.com',
