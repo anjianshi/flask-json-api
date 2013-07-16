@@ -121,6 +121,7 @@ class ResponseFormatter(object):
         # so, if the formatter want to tell ResponseFormatter, it can't handle this value, it must raise a TypeError, 
         # instand of return None
         self.formatters = []
+        self.flask_json_encoder = json.JSONEncoder()
 
     def __call__(self, f):
         def decorated_function(*args, **kwargs):
@@ -142,7 +143,7 @@ class ResponseFormatter(object):
                     return formatter(o)
                 except TypeError:
                     pass
-        return json.JSONEncoder.default(self, o)
+        return self.flask_json_encoder.default(o)
 
     def register(self, formatter, target_class=None):
         if target_class:
