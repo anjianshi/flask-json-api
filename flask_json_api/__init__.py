@@ -17,18 +17,19 @@ class APIManager(object):
         self.response_formatter = ResponseFormatter()
         self.exception_handler = ExceptionHandler()
         
-        # decorators that will be applied to API handler, you can change it manually
-        # front weill be applied earlier
-        # 
-        # for performance, decorators will be applied when API handlers register,
-        # rather than when API handler be called.
-        # so change this property won't affect API handlers that already registered
+        # 要对 API handler 应用的装饰器的列表。排序靠前的会先被调用
         #
-        # after all decorators be applied, the origin function will be returned (not the decorated one, just origin)
-        # so, you can call that function as well as it hasn't be decorated. no exception handle, no response format...
-        # and if you want a decorator be effective all the time(regardless call like an API handler or normal function),
-        # you should add it manually, don't add it in this decorators list
-        # example: auth decorator is the one should add manually
+        # 修改装饰器列表不会对已经注册了的 API handler 产生影响。
+        # 因为装饰器被设计成在 API handler 刚注册时就应用于其上,
+        # 而不是每次调用 API handler 时都读取这个列表并应用一次。（这样做是出于性能考虑)
+        #
+        # APIManager 把装饰好了的 API handler 交给 flask app 之后，会把 *原始* 的 API handler 当做返回值返回。
+        # 就是说，这个函数再被 APIManager 装饰了之后，没有任何变化。
+        # 这样做的好处是：
+        #     一个 API handler 可以像调用普通函数那样调用另一个 API handler，
+        #     不会有重复的 exception_handler 和 response_formatter 等步骤。
+        # 不过也要注意，若想让某个装饰器在任何时候都起作用（例如 auth 装饰器就需要这样），
+        # 就不能把它加到 APIManager 的装饰器列表里面去，只能让它作为一个普通的装饰器， 手动添加到 API handler 前
         self.decorators = [
             self.response_formatter,
             self.exception_handler
@@ -38,7 +39,7 @@ class APIManager(object):
         self.app = app_or_blueprint
 
     def __call__(self, rule, **rule_kwargs):
-        """ register new API handler """
+        """注册新 API handler"""
         def decorator(f):
             def decorated_function(*args, **kwargs):
                 return f(*args, **kwargs)
@@ -56,14 +57,8 @@ class APIManager(object):
 # ==============================
 
 class ExceptionHandler(object):
-    """only exceptions has property "api_status", will be treat
-    "api_status" means http status, it's value like 404, 500, etc
-
-    if an exception need to be treat, but is not raised by API handler itself(eg. raised by 3rd library ), 
-    and you can't change it to have the "api_status" property, you can call "register_exception" method, 
-    register the exception into ExceptionHandler, then it will known how to handle it
-
-    And notice, the exceptions must be an instance of Exception(or it's sub-class)
+    """ExceptionHandler 只处理与 HTTPException 或与其兼容的 exception 对象（至少要包含 code 字段）
+    exception 对象的 code 和 description 字段
     """
 
     def __init__(self):
@@ -77,50 +72,55 @@ class ExceptionHandler(object):
                 if hasattr(e, 'api_status'):
                     return make_response(e.message, e.api_status)
                 else:
-                    for registered_exception in self.registered_exceptions:
-                        if isinstance(e, registered_exception.exception_class):
-                            return make_response(registered_exception.message,
-                                                 registered_exception.api_status)
+                    for wrapper in self.registered_exceptions:
+                        if isinstance(e, wrapper.exception_class):
+                            return make_response(wrapper.message if wrapper.message is not None else e.message,
+                                                 wrapper.api_status)
 
                     # can't understand this exception, raise it again
                     raise e
         return decorated_function
 
     def register_exception(self, *args, **kwargs):
+        """若需要 ExceptionHandler 处理一个没有 api_status 属性 exception 对象(例如它来自第三方类库)，
+        可以调用此方法，把它提交给 ExceptionHandler，并指明对应的 api_status
+        这样 ExceptionHandler 就知道该如何处理它了
+        （你也可以自己构造一个 ExceptionWrapper 对象，插入到 ExceptionHandler 的 registered_exceptions 属性里）
+
+        另外，此方法还有一个用途：给指定类型的 exception 对象设定默认 message"""
         self.registered_exceptions.append(ExceptionWrapper(*args, **kwargs))
 
 
 class ExceptionWrapper(object):
-    def __init__(self, exception_class, api_status=500, message=''):
+    def __init__(self, exception_class, api_status=500, message=None):
         self.exception_class = exception_class
         self.api_status = api_status
         self.message = message
 
 
 class InvalidRequest(Exception):
-    """use in API handler and some utils"""
+    """当用户请求不合法时，统一抛出此异常(如：json 格式错误，表单值)"""
     api_status = 400
 
 
 # ================================
 
 class ResponseFormatter(object):
-    """format API handler's return value to JSON or JSONP
-    if there's a query param called "callback"(eg.  http://url?callback=xxx), format to JSONP
-    else JSON
+    """把 API handler 的返回值转换成 JSON
+    如果用户的请求参数中包含 "callback"(例如：http://url?callback=xxx)，则把返回值格式化成 JSONP
     """
 
     def __init__(self):
-        # user can add customer formatter to handle type that default json_encoder can't understand
-        # 
-        # a formatter can assign to a special type or no(example for a group standalone classes has same feature)
-        # 
-        # for formatter that hasn't assign to a type, no matter what it returns,
-        # ResponseFormatter will think it is the right result
-        # generate by the formatter, and return it, even if it's None
+        # 用户可以创建自定义的 formatter，以处理默认的 json_encoder 无法处理的数据类型
         #
-        # so, if the formatter want to tell ResponseFormatter, it can't handle this value, it must raise a TypeError, 
-        # instead of return None
+        # 创建 formatter 时，如果需要，可以给它指定一个数据类型。这样，json_encoder 就只会在要处理的值与指定类型是同一分类或是其子类时，
+        # 调用 formatter
+        #
+        # 如果没有给 formatter 指定数据类型，则每处理一个值，都会调用它。适用于一个 formatter 要处理多种数据类型的情况。
+        #
+        # 不过要注意，在这种情况下，如果 formatter 发现一个值不应由它来处理，它必须抛出一个 TypeError 异常，
+        # 这样系统才能了解情况，并把值传给下一个 formatter。
+        # 否则，无论 formatter 返回什么(包括 None)，系统都会认为这个值就是正确的计算结果，并将其返回
         self.formatters = []
         self.flask_json_encoder = json.JSONEncoder()
 
