@@ -15,7 +15,6 @@ class APIManager(object):
             self.app = None
 
         self.response_formatter = ResponseFormatter()
-        self.exception_handler = ExceptionHandler()
         
         # 要对 API handler 应用的装饰器的列表。排序靠前的会先被调用
         #
@@ -27,12 +26,11 @@ class APIManager(object):
         # 就是说，这个函数再被 APIManager 装饰了之后，没有任何变化。
         # 这样做的好处是：
         #     一个 API handler 可以像调用普通函数那样调用另一个 API handler，
-        #     不会有重复的 exception_handler 和 response_formatter 等步骤。
+        #     不会有重复的 response_formatter 等步骤。
         # 不过也要注意，若想让某个装饰器在任何时候都起作用（例如 auth 装饰器就需要这样），
         # 就不能把它加到 APIManager 的装饰器列表里面去，只能让它作为一个普通的装饰器， 手动添加到 API handler 前
         self.decorators = [
-            self.response_formatter,
-            self.exception_handler
+            self.response_formatter
         ]
 
     def init_app(self, app_or_blueprint):
@@ -53,57 +51,6 @@ class APIManager(object):
             return f
         return decorator
 
-
-# ==============================
-
-class ExceptionHandler(object):
-    """ExceptionHandler 只处理与 HTTPException 或与其兼容的 exception 对象（至少要包含 code 字段）
-    exception 对象的 code 和 description 字段
-    """
-
-    def __init__(self):
-        self.registered_exceptions = []
-
-    def __call__(self, f):
-        def decorated_function(*args, **kwargs):
-            try:
-                return f(*args, **kwargs)
-            except Exception as e:
-                if hasattr(e, 'api_status'):
-                    return make_response(e.message, e.api_status)
-                else:
-                    for wrapper in self.registered_exceptions:
-                        if isinstance(e, wrapper.exception_class):
-                            return make_response(wrapper.message if wrapper.message is not None else e.message,
-                                                 wrapper.api_status)
-
-                    # can't understand this exception, raise it again
-                    raise e
-        return decorated_function
-
-    def register_exception(self, *args, **kwargs):
-        """若需要 ExceptionHandler 处理一个没有 api_status 属性 exception 对象(例如它来自第三方类库)，
-        可以调用此方法，把它提交给 ExceptionHandler，并指明对应的 api_status
-        这样 ExceptionHandler 就知道该如何处理它了
-        （你也可以自己构造一个 ExceptionWrapper 对象，插入到 ExceptionHandler 的 registered_exceptions 属性里）
-
-        另外，此方法还有一个用途：给指定类型的 exception 对象设定默认 message"""
-        self.registered_exceptions.append(ExceptionWrapper(*args, **kwargs))
-
-
-class ExceptionWrapper(object):
-    def __init__(self, exception_class, api_status=500, message=None):
-        self.exception_class = exception_class
-        self.api_status = api_status
-        self.message = message
-
-
-class InvalidRequest(Exception):
-    """当用户请求不合法时，统一抛出此异常(如：json 格式错误，表单值)"""
-    api_status = 400
-
-
-# ================================
 
 class ResponseFormatter(object):
     """把 API handler 的返回值转换成 JSON
