@@ -16,7 +16,9 @@ __all__ = ['get_instance', 'model_conv']
 import flask.ext.sqlalchemy
 from sqlalchemy.orm import Query
 from sqlalchemy.util import KeyedTuple
-from conv import RouteConverter
+
+from conv import URLVarConverter
+from . import InvalidRequest
 
 
 def get_instance(app):
@@ -44,8 +46,8 @@ def _model_as_dict(self, exclude=None, only=None):
     return d
 flask.ext.sqlalchemy.Model.as_dict = _model_as_dict
 
-# store custome args:
-#'    exclude_columns': []      the columns should exclude when call as_dict()
+# store custom args:
+#   'exclude_columns': []      the columns should exclude when call as_dict()
 flask.ext.sqlalchemy.Model.__api_args__ = None
 
 
@@ -71,7 +73,7 @@ KeyedTuple.as_dict = _keyed_tuple_as_dict
 
 # ==================================
 
-@RouteConverter
+@URLVarConverter
 def model_conv(id, model):
     instance = model.query.get(id)
     if instance is None:

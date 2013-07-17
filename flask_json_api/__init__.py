@@ -26,8 +26,8 @@ class APIManager(object):
         #
         # after all decorators be applied, the origin function will be returned (not the decorated one, just origin)
         # so, you can call that function as well as it hasn't be decorated. no exception handle, no response format...
-        # and if you want a decorator be effictive all the time(regardless call like an API handler or normal function),
-        # you should add it manually, dont't add it in this decorators list
+        # and if you want a decorator be effective all the time(regardless call like an API handler or normal function),
+        # you should add it manually, don't add it in this decorators list
         # example: auth decorator is the one should add manually
         self.decorators = [
             self.response_formatter,
@@ -115,11 +115,12 @@ class ResponseFormatter(object):
         # 
         # a formatter can assign to a special type or no(example for a group standalone classes has same feature)
         # 
-        # for formatters has't assign to a type, no matter what it returns, ResponseFormatter will think it is the right result
+        # for formatter that hasn't assign to a type, no matter what it returns,
+        # ResponseFormatter will think it is the right result
         # generate by the formatter, and return it, even if it's None
         #
         # so, if the formatter want to tell ResponseFormatter, it can't handle this value, it must raise a TypeError, 
-        # instand of return None
+        # instead of return None
         self.formatters = []
         self.flask_json_encoder = json.JSONEncoder()
 

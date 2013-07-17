@@ -1,6 +1,16 @@
 ```text
 
-kgzx-json-api
+flask-json-api
+
+名词解释:
+API     API 是一个抽象概念，大体指一个 url 以及对应的响应函数的组合体
+API handler     响应某个请求的 API 函数，一个函数可以对应多个 URL
+URL vari
+
+
+
+APIManager
+    通过调用此对象来注册 API handler
 
 api 装饰器
     将错误处理、权限验证、返回值格式化组件与 api 函数拼装在一起，并注册进 app.route
