@@ -47,7 +47,7 @@ class APIForm(wtforms.Form):
     def validate(self):
         """验证失败时自动报错"""
         if not super(APIForm, self).validate():
-            if current_app.confit['DEBUG']:
+            if current_app.config['DEBUG']:
                 print('Form validate failed：')
                 print(self.errors)
             raise BadRequest('Form validate failed')
