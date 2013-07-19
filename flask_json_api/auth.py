@@ -2,10 +2,7 @@
 
 from functools import wraps
 from flask import session
-
-
-class UnauthorizedError(Exception):
-    api_status = 401
+from werkzeug.exceptions import Unauthorized
 
 
 class AuthManager(object):
@@ -24,7 +21,7 @@ class AuthManager(object):
             def decorated_function(*args, **kwargs):
                 self.verify(*verify_args, **verify_kwargs)
                 return f(*args, **kwargs)
-            return decorated_function;
+            return decorated_function
         return decorator
 
     def prepare(self):
@@ -44,6 +41,11 @@ class AuthManager(object):
 
 
 class SessionAuthManager(AuthManager):
+    """AuthManager 的 session 实现
+    sign 指当前访客的身份类型。它是由用户定义的，每种身份类型需对应一个数字
+    若某个 API handler 允许多种身份的人访问，可把这个多个身份类型的值按位运算，传给此对象
+    """
+
     def __init__(self, app):
         self.sign = None
         self.extra_data = None
@@ -73,9 +75,9 @@ class SessionAuthManager(AuthManager):
             self.sign = self.extra_data = None
 
     def verify(self, expect_sign):
-        """set expect_sign to None, or just don't call this method/applied auth decorator, to let everyone can visit"""
+        """若要使所有访客都能访问此 API，可把 expect_sign 设为 None，或者不对此 API 应用 auth 装饰器(不推荐，容易疏忽犯错)"""
         if expect_sign is None:
             return
 
         if self.sign is None or (expect_sign & self.sign) != self.sign:
-            raise UnauthorizedError()
+            raise Unauthorized()

@@ -1,14 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-use utils in this module, need flask-sqlalchemy
-
-add as_dict() method, to resolve SQLAlchemy doesn't support translate model to dict, 
-and then can't serialization it to json's problem
-
-add a __api_args__ property help implement new feature
-
-and other utils
-
+使用此模块需要 flask-sqlalchemy
 """
 
 __all__ = ['get_instance', 'model_conv']
@@ -18,12 +10,14 @@ from sqlalchemy.orm import Query
 from sqlalchemy.util import KeyedTuple
 
 from conv import URLVarConverter
-from . import InvalidRequest
+from werkzeug.exceptions import BadRequest
 
 
 def get_instance(app):
     return flask.ext.sqlalchemy.SQLAlchemy(app)
 
+
+# ==================================
 
 def _model_as_dict(self, exclude=None, only=None):
     if exclude is None and only is None and self.__api_args__ is not None and 'exclude_columns' in self.__api_args__:
@@ -46,8 +40,8 @@ def _model_as_dict(self, exclude=None, only=None):
     return d
 flask.ext.sqlalchemy.Model.as_dict = _model_as_dict
 
-# store custom args:
-#   'exclude_columns': []      the columns should exclude when call as_dict()
+# 此属性用来存放此模块用到的配置:
+#   'exclude_columns': []      调用 as_dict() 时默认要排除的 column
 flask.ext.sqlalchemy.Model.__api_args__ = None
 
 
@@ -57,9 +51,8 @@ def _query_as_dict(self, **kwargs):
 Query.as_dict = _query_as_dict
 
 
-# KeyedTuple is the return value of a query that has 'join' condition
-# actually，it already has a method called _asdict(), but it's return value
-# doesn't meet the requirements
+# 包含 'join' 的 query 的返回值中，通常会包含 KeyedTuple
+# 其实这个类型已经有一个类似的叫 _asdict() 的方法了，但是它的返回值不太符合需求
 def _keyed_tuple_as_dict(self, **kwargs):
     result = {}
     for key, value in self._asdict().iteritems():
@@ -77,5 +70,5 @@ KeyedTuple.as_dict = _keyed_tuple_as_dict
 def model_conv(id, model):
     instance = model.query.get(id)
     if instance is None:
-        raise InvalidRequest('{}(id={})不存在，请求不合法'.format(model.__name__, id))
+        raise BadRequest('{}(id={})不存在，请求不合法'.format(model.__name__, id))
     return instance
