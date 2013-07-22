@@ -68,9 +68,9 @@ KeyedTuple.as_dict = _keyed_tuple_as_dict
 # ===== simple validators ==========
 
 validate_logic = {
-    'min': lambda value, min: value is None or value >= min,
-    'max': lambda value, max: value is None or value <= max,
-    'min_length': lambda value, min: value is None or len(value) >= min,
+    'min': lambda value, min: value >= min,
+    'max': lambda value, max: value <= max,
+    'min_length': lambda value, min: len(value) >= min,
 }
 
 
