@@ -77,5 +77,9 @@ URL variable 转换器(可扩展)
 
 创建一个专门针对 model 的 url variable converter
 
+提供一个简易的 validator 工具
+class User(db.Model)
+    name = Column(String(100), nullable=False)
+    v1 = validator('name', 'min_length', 3)
 
 ```
