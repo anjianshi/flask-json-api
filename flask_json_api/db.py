@@ -77,11 +77,17 @@ validate_logic = {
 def validator(columns, logic_name, *logic_args, **kwargs):
     if not isinstance(columns, list):
         columns = [columns]
-    logic = validate_logic[logic_name]
+
+    if isinstance(logic_name, str):
+        logic = validate_logic[logic_name]
+    else:
+        logic = logic_name
+        logic_name = 'lambda'
 
     @_orm_validates(*columns, **kwargs)
     def f(self, key, value):
-        if not logic(value, *logic_args):
+        # 如果字段值为 None，不进行检查，由 sqlalchemy 根据字段的 nullable 属性确定是否合法
+        if value is not None and not logic(value, *logic_args):
             args = []
             for arg in logic_args:
                 args.append(str(arg))
