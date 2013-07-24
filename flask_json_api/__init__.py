@@ -86,10 +86,10 @@ class JSONEncodeManager(object):
 
     def __call__(self, o):
         encoders = []
-        encoders.extend(encoders)
+        encoders.extend(self.encoders)
         encoders.extend(_predefined_json_encoders)
 
-        for encoder in self.encoders:
+        for encoder in encoders:
             if isinstance(encoder, tuple):
                 if isinstance(o, encoder[0]):
                     return encoder[1](o)
