@@ -36,6 +36,7 @@ def _exclude_column(self, excludes):
         for column in excludes:
             if column not in self._exclude_columns:
                 self._exclude_columns.append(column)
+    return self
 
 
 def _model_as_dict(self, exclude=None):
@@ -53,18 +54,24 @@ def _model_as_dict(self, exclude=None):
     return d
 
 
-def _query_as_dict(self, **kwargs):
+def _query_as_dict(self, exclude=None):
+    if exclude is None:
+        exclude = getattr(self, '_exclude_columns', None)
+
     for row in self:
-        yield row.as_dict(**kwargs)
+        yield row.as_dict(exclude)
 
 
 # 包含 'join' 的 query 的返回值中，通常会包含 KeyedTuple
 # 其实这个类型已经有一个类似的叫 _asdict() 的方法了，但是它的返回值不太符合需求
-def _keyed_tuple_as_dict(self, **kwargs):
+def _keyed_tuple_as_dict(self, exclude=None):
+    if exclude is None:
+        exclude = getattr(self, '_exclude_columns', None)
+
     result = {}
     for key, value in self._asdict().iteritems():
         if isinstance(value, Model):
-            result.update(value.as_dict(**kwargs))
+            result.update(value.as_dict(exclude))
         else:
             result[key] = value
     return result
