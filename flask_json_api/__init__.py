@@ -75,7 +75,6 @@ class JSONEncodeManager(object):
         # 这样系统才能了解情况，并把值传给下一个 encoder。
         # 否则，无论 encoder 返回什么(包括 None)，系统都会认为这个值就是正确的计算结果，并将其返回
         self.encoders = []
-        self.encoders.extend(_predefined_json_encoders)
 
     def register(self, encoder, target_class=None):
         if target_class:
@@ -84,6 +83,10 @@ class JSONEncodeManager(object):
             self.encoders.append(encoder)
 
     def __call__(self, o):
+        encoders = []
+        encoders.extend(encoders)
+        encoders.extend(_predefined_json_encoders)
+
         for encoder in self.encoders:
             if isinstance(encoder, tuple):
                 if isinstance(o, encoder[0]):
