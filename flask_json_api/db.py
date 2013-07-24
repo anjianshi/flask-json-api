@@ -26,7 +26,7 @@ Model.__api_args__ = None
 
 # ===== as_dict ====================
 
-def _exclude_column(self, excludes):
+def _exclude_col(self, excludes):
     if not isinstance(excludes, list):
         excludes = [excludes]
 
@@ -78,13 +78,13 @@ def _keyed_tuple_as_dict(self, exclude=None):
 
 
 Model.as_dict = _model_as_dict
-Model.exclude = _exclude_column
+Model.exclude_col = _exclude_col
 
 Query.as_dict = _query_as_dict
-Query.exclude = _exclude_column
+Query.exclude_col = _exclude_col
 
 KeyedTuple.as_dict = _keyed_tuple_as_dict
-KeyedTuple.exclude = _exclude_column
+KeyedTuple.exclude_col = _exclude_col
 
 _predefined_json_encoders.extend([
     (Model, _model_as_dict),
