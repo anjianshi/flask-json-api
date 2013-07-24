@@ -76,6 +76,8 @@ class JSONEncodeManager(object):
         # 否则，无论 encoder 返回什么(包括 None)，系统都会认为这个值就是正确的计算结果，并将其返回
         self.encoders = []
 
+        self.flask_json_encoder = json.JSONEncoder()
+
     def register(self, encoder, target_class=None):
         if target_class:
             self.encoders.append((target_class, encoder))
@@ -96,4 +98,4 @@ class JSONEncodeManager(object):
                     return encoder(o)
                 except TypeError:
                     pass
-        return json.JSONEncoder.default(o)
+        return self.flask_json_encoder.default(o)
