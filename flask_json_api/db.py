@@ -5,21 +5,23 @@
 
 __all__ = ['get_instance', 'model_conv', 'validate_logic', 'validator']
 
-import flask.ext.sqlalchemy
+from flask.ext.sqlalchemy import SQLAlchemy, Model
 from sqlalchemy.orm import Query, validates as _orm_validates
 from sqlalchemy.util import KeyedTuple
 
 from conv import URLVarConverter
 from werkzeug.exceptions import BadRequest
 
+from . import _predefined_json_encoders
+
 
 def get_instance(app):
-    return flask.ext.sqlalchemy.SQLAlchemy(app)
+    return SQLAlchemy(app)
 
 
 # 此属性用来存放此模块用到的配置:
 #   'exclude_columns': []      调用 as_dict() 时默认要排除的 column
-flask.ext.sqlalchemy.Model.__api_args__ = None
+Model.__api_args__ = None
 
 
 # ===== as_dict ====================
@@ -49,15 +51,11 @@ def _model_as_dict(self, exclude=None):
         if exclude is None or colname not in exclude:
             d[colname] = getattr(self, colname)
     return d
-flask.ext.sqlalchemy.Model.as_dict = _model_as_dict
-flask.ext.sqlalchemy.Model.exclude = _exclude_column
 
 
 def _query_as_dict(self, **kwargs):
     for row in self:
         yield row.as_dict(**kwargs)
-Query.as_dict = _query_as_dict
-Query.exclude = _exclude_column
 
 
 # 包含 'join' 的 query 的返回值中，通常会包含 KeyedTuple
@@ -65,13 +63,27 @@ Query.exclude = _exclude_column
 def _keyed_tuple_as_dict(self, **kwargs):
     result = {}
     for key, value in self._asdict().iteritems():
-        if isinstance(value, flask.ext.sqlalchemy.Model):
+        if isinstance(value, Model):
             result.update(value.as_dict(**kwargs))
         else:
             result[key] = value
     return result
+
+
+Model.as_dict = _model_as_dict
+Model.exclude = _exclude_column
+
+Query.as_dict = _query_as_dict
+Query.exclude = _exclude_column
+
 KeyedTuple.as_dict = _keyed_tuple_as_dict
 KeyedTuple.exclude = _exclude_column
+
+_predefined_json_encoders.extend([
+    (Model, _model_as_dict),
+    (Query, _query_as_dict),
+    (KeyedTuple, _keyed_tuple_as_dict)
+])
 
 
 # ===== simple validators ==========

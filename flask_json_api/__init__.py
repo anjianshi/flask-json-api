@@ -59,6 +59,12 @@ class APIManager(object):
             return json_str, 200, {'Content-Type': 'application/json'}
 
 
+_predefined_json_encoders = [
+    # 支持 generator
+    lambda x: list(iter(x))
+]
+
+
 class JSONEncodeManager(object):
     def __init__(self):
         # 用户可以创建自定义的 encoder，以处理默认的 json encoder 无法处理的数据类型
@@ -72,6 +78,7 @@ class JSONEncodeManager(object):
         # 这样系统才能了解情况，并把值传给下一个 encoder。
         # 否则，无论 encoder 返回什么(包括 None)，系统都会认为这个值就是正确的计算结果，并将其返回
         self.encoders = []
+        self.encoders.extend(_predefined_json_encoders)
 
     def register(self, encoder, target_class=None):
         if target_class:
