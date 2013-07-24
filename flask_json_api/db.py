@@ -24,32 +24,40 @@ flask.ext.sqlalchemy.Model.__api_args__ = None
 
 # ===== as_dict ====================
 
-def _model_as_dict(self, exclude=None, only=None):
-    if exclude is None and only is None and self.__api_args__ is not None and 'exclude_columns' in self.__api_args__:
-        exclude = self.__api_args__['exclude_columns']
+def _exclude_column(self, excludes):
+    if not isinstance(excludes, list):
+        excludes = [excludes]
 
+    if not hasattr(self, '_exclude_columns'):
+        self._exclude_columns = excludes
+    else:
+        for column in excludes:
+            if column not in self._exclude_columns:
+                self._exclude_columns.append(column)
+
+
+def _model_as_dict(self, exclude=None):
     if exclude:
-        # 若 exclude 和 only 同时被赋值，只考虑 exclude
-        only = None
         if not isinstance(exclude, list):
             exclude = [exclude]
-    elif only and not isinstance(only, list):
-        only = [only]
+    elif hasattr(self, '_exclude_columns'):
+        exclude = self._exclude_columns
 
     d = {}
     for column in self.__table__.columns:
         colname = column.name
-        if (exclude and colname in exclude) or (only and colname not in only):
-            continue
-        d[colname] = getattr(self, colname)
+        if exclude is None or colname not in exclude:
+            d[colname] = getattr(self, colname)
     return d
 flask.ext.sqlalchemy.Model.as_dict = _model_as_dict
+flask.ext.sqlalchemy.Model.exclude = _exclude_column
 
 
 def _query_as_dict(self, **kwargs):
     for row in self:
         yield row.as_dict(**kwargs)
 Query.as_dict = _query_as_dict
+Query.exclude = _exclude_column
 
 
 # 包含 'join' 的 query 的返回值中，通常会包含 KeyedTuple
@@ -63,6 +71,7 @@ def _keyed_tuple_as_dict(self, **kwargs):
             result[key] = value
     return result
 KeyedTuple.as_dict = _keyed_tuple_as_dict
+KeyedTuple.exclude = _exclude_column
 
 
 # ===== simple validators ==========
