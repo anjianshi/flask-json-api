@@ -59,10 +59,7 @@ class APIManager(object):
             return json_str, 200, {'Content-Type': 'application/json'}
 
 
-_predefined_json_encoders = [
-    # 支持 generator
-    lambda x: list(iter(x))
-]
+_predefined_json_encoders = []
 
 
 class JSONEncodeManager(object):
