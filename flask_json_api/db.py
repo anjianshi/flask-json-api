@@ -121,7 +121,7 @@ def validator(columns, logic_name, *logic_args, **kwargs):
                 args.append(str(arg))
 
             raise BadRequest(
-                'db model validate failed: key={}, value={}, logic={}, arg={}'.format(
+                u'db model validate failed: key={}, value={}, logic={}, arg={}'.format(
                     key, value, logic_name, ','.join(args)))
         return value
 
@@ -135,5 +135,5 @@ def validator(columns, logic_name, *logic_args, **kwargs):
 def model_conv(id, model):
     instance = model.query.get(id)
     if instance is None:
-        raise BadRequest('{}(id={})不存在，请求不合法'.format(model.__name__, id))
+        raise BadRequest(u'{}(id={})不存在，请求不合法'.format(model.__name__, id))
     return instance

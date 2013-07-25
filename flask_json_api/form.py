@@ -50,7 +50,7 @@ class APIForm(wtforms.Form):
             if current_app.config['DEBUG']:
                 print('Form validate failed：')
                 print(self.errors)
-            raise BadRequest('Form validate failed')
+            raise BadRequest(u'Form validate failed')
 
 
 # 用于解决 WTForms 不支持 json 形式的表单值的问题
@@ -67,7 +67,7 @@ def _flatten_json(json, parent_key='', separator='-'):
         >>> {'a-b': 'c'}
     """
     if not isinstance(json, collections.Mapping):
-        raise BadRequest('This function only accepts dict-like data structures.')
+        raise BadRequest(u'This function only accepts dict-like data structures.')
 
     items = []
     for key, value in json.items():
@@ -122,7 +122,7 @@ ModelForm = model_form_factory(APIForm, strip_string_fields=True)
 class _APIEditForm(APIForm):
     def __init__(self, *args, **kwargs):
         if not hasattr(self, '_obj'):
-            raise ValueError("""当前表单是编辑实体用的表单，应传入对应的实体对象以避免 unique 检查失败。
+            raise ValueError(u"""当前表单是编辑实体用的表单，应传入对应的实体对象以避免 unique 检查失败。
                 请通过命名参数的形式传递，即： TheForm(obj=instance) ，不要直接传递。
                 如果确实不需要传入 obj 参数，请这样： TheForm(obj=None)""")
         super(_APIEditForm, self).__init__(*args, **kwargs)
