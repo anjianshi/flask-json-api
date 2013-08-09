@@ -32,7 +32,7 @@ class APIManager(object):
     def init_app(self, app_or_blueprint):
         self.app = app_or_blueprint
 
-    def __call__(self, rule, **rule_kwargs):
+    def __call__(self, *rules, **rule_kwargs):
         """注册新 API handler"""
         def decorator(f):
             def decorated_function(*args, **kwargs):
@@ -42,7 +42,8 @@ class APIManager(object):
                 decorated_function = decorator(decorated_function)
             decorated_function = wraps(f)(decorated_function)
 
-            self.app.add_url_rule(rule, None, decorated_function, **rule_kwargs)
+            for rule in rules:
+                self.app.add_url_rule(rule, None, decorated_function, **rule_kwargs)
 
             return f
         return decorator
