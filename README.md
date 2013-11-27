@@ -1,3 +1,8 @@
+### Deprecated
+see [flask-restful-extend](https://github.com/anjianshi/flask-restful-extend)
+
+
+
 ```text
 
 # 核心
